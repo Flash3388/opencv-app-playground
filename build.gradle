@@ -1,0 +1,48 @@
+plugins {
+    id "application"
+}
+
+def SUPPORTED_ARCHES = ['windowsx86-64', 'linuxx86-64']
+
+sourceCompatibility = JavaVersion.VERSION_11
+
+repositories {
+    mavenCentral()
+
+    maven {
+        url('https://frcmaven.wpi.edu/artifactory/release')
+    }
+}
+
+configurations {
+    nativeZip
+    implementation.extendsFrom nativeZip
+}
+
+dependencies {
+    implementation 'com.github.tomtzook:castle:1.0.0'
+    implementation group: "edu.wpi.first.thirdparty.frc${YEAR}.opencv", name: 'opencv-java', version: "$OPENCV_VERSION"
+    implementation "edu.wpi.first.wpiutil:wpiutil-java:$WPILIB_VERSION"
+
+    SUPPORTED_ARCHES.forEach({
+        nativeZip group: "edu.wpi.first.thirdparty.frc${YEAR}.opencv", name: 'opencv-jni', version: "$OPENCV_VERSION", classifier: "$it", transitive: false
+    })
+}
+
+application {
+    mainClassName = 'project.Main'
+}
+
+task copyNatives(type: Copy) {
+    from {
+        configurations.nativeZip.collect {
+            zipTree(it).matching {
+                include '**/*.so'
+                include '**/*.dll'
+            }.files
+        }
+    }
+    into project.file("natives")
+}
+
+project.processResources.dependsOn copyNatives
